@@ -42,46 +42,33 @@ def get_session_dir(session_id: str) -> str:
     return os.path.join(_get_sessions_root(), session_id)
 
 
-def normalize_params(
-    *,
-    src: str,
-    v: str = "h264",
-    a: str = "aac",
-    br: str = "1500k",
-    res: str = "1280x720",
-    fps: Optional[int] = None,
-    seg_dur: int = 2,
-    list_size: int = 6,
-    segment_type: str = "ts",
-) -> Dict[str, Any]:
-    width: Optional[int]
-    height: Optional[int]
-    if "x" in res:
-        parts = res.lower().split("x")
-        width = int(parts[0])
-        height = int(parts[1])
+def normalize_params_from_query(query_params: Any) -> Dict[str, Any]:
+    src = query_params.get("src") if hasattr(query_params, "get") else None
+    if not src:
+        raise ValueError("missing src")
+
+    extra: list[str] = []
+
+    if hasattr(query_params, "multi_items"):
+        items = list(query_params.multi_items())
+    elif hasattr(query_params, "items"):
+        items = list(query_params.items())
     else:
-        width, height = 1280, 720
+        items = []
 
-    st = segment_type.lower()
-    if st not in ("ts", "fmp4"):
-        st = "ts"
+    for key, value in items:
+        if key == "src":
+            continue
+        if value is None or value == "" or str(value).lower() in ("1", "true"):
+            extra.append(f"-{key}")
+        else:
+            extra.append(f"-{key}")
+            extra.append(str(value))
 
-    seg_dur = max(1, int(seg_dur))
-    list_size = max(2, int(list_size))
-
-    canonical = {
+    return {
         "src": src,
-        "v": v.lower(),
-        "a": a.lower(),
-        "br": br,
-        "res": f"{width}x{height}",
-        "fps": int(fps) if fps else None,
-        "segDur": seg_dur,
-        "listSize": list_size,
-        "segmentType": st,
+        "extra": extra,
     }
-    return canonical
 
 
 def compute_session_id(params: Dict[str, Any]) -> str:
