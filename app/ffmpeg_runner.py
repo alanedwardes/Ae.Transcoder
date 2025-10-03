@@ -14,21 +14,20 @@ def start_ffmpeg(*, session_id: str, params: Dict[str, Any], session_dir: str):
     playlist_path = str(pathlib.Path(session_dir) / "index.m3u8")
     segment_pattern = str(pathlib.Path(session_dir) / "%06d.ts")
 
-    cmd: list[str] = [
-        "ffmpeg",
-#        "-hide_banner",
-#        "-loglevel",
-#        "error",
-#        "-nostdin",
-        "-re",
-        "-i",
-        src,
-    ]
+    # For live network sources, skip -re; keep -re for local files to simulate realtime
+    use_re = not (src.startswith("http://") or src.startswith("https://") or src.startswith("rtsp://"))
+
+    cmd: list[str] = ["ffmpeg"]
+    if use_re:
+        cmd.append("-re")
+    cmd.extend(["-i", src])
 
     if extra:
         cmd.extend(extra)
 
     cmd.extend([
+        "-sc_threshold",
+        "0",
         "-f",
         "hls",
         "-hls_segment_filename",
