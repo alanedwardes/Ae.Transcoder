@@ -1,0 +1,16 @@
+services:
+  transcoder:
+    image: ae-transcoder
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - IDLE_TTL_SECONDS=${IDLE_TTL_SECONDS:-30}
+      - MAX_PLAYLIST_WAIT_SECONDS=${MAX_PLAYLIST_WAIT_SECONDS:-20}
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    # Keep HLS segments in RAM
+    tmpfs:
+      - /sessions:rw,noexec,nosuid,size=${TMPFS_SIZE:-1g}
+    restart: unless-stopped
+
